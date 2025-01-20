@@ -4,10 +4,10 @@ import "6.5840/labrpc"
 import "crypto/rand"
 import "math/big"
 
-
 type Clerk struct {
 	server *labrpc.ClientEnd
 	// You will have to modify this struct.
+	clintID int64 // 客户端id
 }
 
 func nrand() int64 {
@@ -21,6 +21,7 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.server = server
 	// You'll have to add code here.
+	ck.clintID = nrand()
 	return ck
 }
 
@@ -35,9 +36,18 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
-
 	// You will have to modify this function.
-	return ""
+	uniqueID := nrand()
+	req := &GetArgs{Key: key, ReqID: uniqueID, ClientID: ck.clintID}
+	res := &GetReply{}
+	var ok bool
+	for i := 0; i < 100 && !ok; i++ {
+		ok = ck.server.Call("KVServer.Get", req, res)
+		if ok {
+			return res.Value
+		}
+	}
+	return res.Value
 }
 
 // shared by Put and Append.
@@ -50,7 +60,22 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
-	return ""
+	uniqueID := nrand()
+	req := &PutAppendArgs{Key: key, Value: value, ReqID: uniqueID, ClientID: ck.clintID}
+	res := &PutAppendReply{}
+	var ok bool
+	for i := 0; i < 100 && !ok; i++ {
+		switch op {
+		case "Put":
+			ok = ck.server.Call("KVServer.Put", req, res)
+		case "Append":
+			ok = ck.server.Call("KVServer.Append", req, res)
+		}
+		if ok {
+			return res.Value
+		}
+	}
+	return res.Value
 }
 
 func (ck *Clerk) Put(key string, value string) {
